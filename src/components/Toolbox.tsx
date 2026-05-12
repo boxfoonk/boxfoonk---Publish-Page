@@ -75,6 +75,8 @@ export default function Toolbox({ onBack }: { onBack: () => void }) {
     { id: 'ntp-list', name: '公共NTP服务', desc: '常用网络时间同步服务器', icon: Clock, category: 'query', component: PublicNTPList },
     { id: 'tld-list', name: '顶级域名后缀', desc: '常用与各地区顶级域名查询', icon: Hash, category: 'query', component: TLDSuffixes },
     { id: 'dns-query', name: 'DNS查询', desc: '全球多节点DNS记录查询', icon: Server, category: 'query', component: DNSQuery },
+    { id: 'ip-info', name: 'IP集成查询', desc: '查询当前IP、地理位置及运营商信息', icon: MapPin, category: 'query', component: IPInfo },
+    { id: 'network-test', name: '连接可用性', desc: '检测当前网络环境与连接稳定性', icon: Zap, category: 'query', component: NetworkDiagnostic },
     { id: 'world-time', name: '各国首都时间', desc: '全球城市实时时间与时标查询', icon: MapPin, category: 'query', component: WorldTime },
     { id: 'mac-vendor', name: 'MAC厂商查询', desc: '通过MAC地址查询设备制造商', icon: Monitor, category: 'query', component: MACVendor },
     
@@ -1232,11 +1234,16 @@ const WhoisQuery = () => {
                 <input value={domain} onChange={e => setDomain(e.target.value)} className="flex-1 p-3 bg-white/5 border border-white/10 rounded-xl text-white" />
                 <button className="px-6 py-2 bg-rose-500 rounded-xl font-bold">查询</button>
             </div>
+            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                <p className="text-[10px] text-amber-400 font-bold uppercase mb-1">注意</p>
+                <p className="text-[10px] text-amber-500/80 leading-relaxed">由于浏览器安全限制 (CORS)，前端无法直接进行 WHOIS 查询。以下为演示数据，点击查询可跳转外部专业工具。</p>
+            </div>
             <div className="p-6 bg-black/40 rounded-2xl space-y-2 text-sm">
                 <p className="flex justify-between"><span className="text-zinc-500">注册商:</span><span className="text-white">MarkMonitor Inc.</span></p>
                 <p className="flex justify-between"><span className="text-zinc-500">注册日期:</span><span className="text-white">1997-09-15</span></p>
                 <p className="flex justify-between"><span className="text-zinc-500">到期日期:</span><span className="text-white">2028-09-14</span></p>
             </div>
+            <a href={`https://whois.aliyun.com/whois/domain/${domain}`} target="_blank" rel="noreferrer" className="block text-center text-xs text-rose-400 hover:underline">去阿里云查询实时 WHOIS</a>
         </div>
     );
 };
@@ -1280,10 +1287,19 @@ const TLDSuffixes = () => {
 
 const DNSQuery = () => {
     const [results] = useState([{ type: 'A', value: '104.21.78.23' }, { type: 'MX', value: 'mail.boxfoonk.com' }]);
+    const [domain, setDomain] = useState('boxfoonk.com');
     return (
         <div className="space-y-4">
-            <div className="flex gap-2"><input placeholder="domain.com" className="flex-1 p-3 bg-white/5 border border-white/10 rounded-xl" /><button className="px-4 py-2 bg-rose-500 rounded-xl">查询</button></div>
+            <div className="flex gap-2">
+                <input value={domain} onChange={e => setDomain(e.target.value)} placeholder="domain.com" className="flex-1 p-3 bg-white/5 border border-white/10 rounded-xl text-white" />
+                <button className="px-4 py-2 bg-rose-500 rounded-xl font-bold">查询</button>
+            </div>
+            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                <p className="text-[10px] text-amber-400 font-bold uppercase mb-1">注意</p>
+                <p className="text-[10px] text-amber-500/80 leading-relaxed">纯前端环境不支持原生 DNS 协议查询。以下为示例结果，如需获取实时记录请点击下方跳转。</p>
+            </div>
             <div className="space-y-2">{results.map((r, i) => (<div key={i} className="flex justify-between p-3 bg-white/5 rounded-xl text-xs font-mono"><span className="text-rose-400 font-bold">{r.type}</span><span className="text-zinc-400">{r.value}</span></div>))}</div>
+            <a href={`https://www.itdog.cn/dns/${domain}`} target="_blank" rel="noreferrer" className="block text-center text-xs text-rose-400 hover:underline">去 ITDOG 查询实时解析</a>
         </div>
     );
 };
@@ -1303,25 +1319,200 @@ const WorldTime = () => {
 };
 
 const MACVendor = () => {
+    const [mac, setMac] = useState('');
+    const [result, setResult] = useState<string | null>(null);
+    const lookup = () => {
+        if (!mac) return;
+        // Simple demo logic or placeholder
+        if (mac.toUpperCase().startsWith('00:0C:29')) setResult('VMware, Inc.');
+        else if (mac.toUpperCase().startsWith('B0:D5:9D')) setResult('Apple, Inc.');
+        else setResult('未知厂商 (示例: 00:0C:29)');
+    };
     return (
         <div className="space-y-4">
-            <input placeholder="00:0C:29" className="w-full p-3 bg-white/5 border border-white/10 rounded-xl" />
-            <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl"><p className="text-xs text-green-400 uppercase font-bold mb-1">结果</p><p className="text-white font-bold">VMware, Inc.</p></div>
+            <input 
+                placeholder="输入 MAC 地址 (如 00:0C:29)" 
+                value={mac}
+                onChange={e => setMac(e.target.value)}
+                className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white" 
+            />
+            <button onClick={lookup} className="w-full py-2 bg-rose-500 rounded-xl font-bold">查询厂商</button>
+            {result && (
+                <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
+                    <p className="text-xs text-green-400 uppercase font-bold mb-1">查询结果</p>
+                    <p className="text-white font-bold">{result}</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const IPInfo = () => {
+    const [info, setInfo] = useState<any>(null);
+    const [loading, setLoading] = useState(false);
+
+    const fetchIP = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('https://ipapi.co/json/');
+            const data = await res.json();
+            setInfo(data);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchIP(); }, []);
+
+    return (
+        <div className="space-y-4">
+            <button onClick={fetchIP} disabled={loading} className="w-full py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold flex items-center justify-center gap-2">
+                <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> 刷新信息
+            </button>
+            {info ? (
+                <div className="p-6 bg-black/40 rounded-2xl border border-white/5 space-y-3">
+                    <div className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="text-zinc-500">当前 IP</span>
+                        <span className="text-rose-400 font-mono font-bold">{info.ip}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="text-zinc-500">地理位置</span>
+                        <span className="text-white">{info.city}, {info.region}, {info.country_name}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="text-zinc-500">运营商</span>
+                        <span className="text-white text-xs text-right max-w-[200px]">{info.org || '未知'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-zinc-500">经纬度</span>
+                        <span className="text-zinc-400 text-xs font-mono">{info.latitude}, {info.longitude}</span>
+                    </div>
+                </div>
+            ) : (
+                <div className="p-12 text-center text-zinc-500 text-sm">正在加载环境信息...</div>
+            )}
+        </div>
+    );
+};
+
+const NetworkDiagnostic = () => {
+    const [status, setStatus] = useState<any>({});
+    const [testing, setTesting] = useState(false);
+
+    const runTest = async () => {
+        setTesting(true);
+        const results: any = {
+            online: navigator.onLine ? '在线' : '离线',
+            platform: navigator.platform,
+            userAgent: navigator.userAgent.includes('Cloudflare') ? '疑似 Cloudflare 代理' : '普通浏览器',
+            language: navigator.language,
+        };
+
+        // Test latency to common services
+        const start = Date.now();
+        try {
+            await fetch('https://www.google.com/favicon.ico', { mode: 'no-cors' });
+            results.googleLatency = (Date.now() - start) + 'ms';
+        } catch { results.googleLatency = '超时'; }
+
+        const startB = Date.now();
+        try {
+            await fetch('https://www.baidu.com/favicon.ico', { mode: 'no-cors' });
+            results.baiduLatency = (Date.now() - startB) + 'ms';
+        } catch { results.baiduLatency = '超时'; }
+
+        setStatus(results);
+        setTesting(false);
+    };
+
+    useEffect(() => { runTest(); }, []);
+
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-center">
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase mb-1">网络状态</p>
+                    <p className={cn("text-lg font-black", status.online === '在线' ? "text-green-500" : "text-red-500 text-sm")}>{status.online || '检测中'}</p>
+                </div>
+                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-center">
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase mb-1">Google 延迟</p>
+                    <p className="text-lg font-black text-white">{status.googleLatency || '--'}</p>
+                </div>
+            </div>
+            
+            <div className="p-6 bg-black/40 rounded-3xl border border-white/5 space-y-4">
+                <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">系统详情</h4>
+                <div className="space-y-2 text-xs">
+                    <p className="flex justify-between"><span className="text-zinc-600">平台</span><span className="text-zinc-400">{status.platform}</span></p>
+                    <p className="flex justify-between"><span className="text-zinc-600">默认语言</span><span className="text-zinc-400">{status.language}</span></p>
+                    <p className="flex justify-between"><span className="text-zinc-600">环境识别</span><span className="text-zinc-400">{status.userAgent}</span></p>
+                </div>
+            </div>
+
+            <button 
+                onClick={runTest} 
+                disabled={testing}
+                className="w-full py-3 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+            >
+                {testing ? <><RefreshCw className="animate-spin" size={18} /> 诊断中...</> : '重新开始诊断'}
+            </button>
         </div>
     );
 };
 
 const ExchangeRate = () => {
-  const [amount, setAmount] = useState(100);
-  const rates = { 'USD': 7.24, 'EUR': 7.85, 'JPY': 0.046, 'HKD': 0.93 };
-  return (
-    <div className="space-y-6">
-      <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-500">¥</span><input type="number" value={amount} onChange={e => setAmount(Number(e.target.value))} className="w-full pl-8 pr-4 py-3 bg-white/5 rounded-xl text-xl" /></div>
-      <div className="grid grid-cols-2 gap-4">
-        {Object.entries(rates).map(([cur, rate]) => (<div key={cur} className="p-3 bg-black/20 rounded-xl text-center"><p className="text-xs text-zinc-500">{cur}</p><p className="font-bold">{(amount / rate).toFixed(2)}</p></div>))}
-      </div>
-    </div>
-  );
+    const [amount, setAmount] = useState(1);
+    const [rates, setRates] = useState<any>({ 'USD': 0.138, 'EUR': 0.127, 'JPY': 21.6, 'HKD': 1.08 });
+    const [loading, setLoading] = useState(false);
+
+    const updateRates = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('https://api.exchangerate-api.com/v4/latest/CNY');
+            const data = await res.json();
+            setRates(data.rates);
+        } catch (e) {
+            console.error('Fetch rate error:', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { updateRates(); }, []);
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-4">
+                <div className="flex justify-between items-center mb-2">
+                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">人民币金额 (CNY)</label>
+                    <button onClick={updateRates} className="text-[10px] text-rose-400 hover:underline flex items-center gap-1">
+                        <RefreshCw size={10} className={loading ? "animate-spin" : ""} /> 获取实时汇率
+                    </button>
+                </div>
+                <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-rose-500">¥</span>
+                    <input 
+                        type="number" 
+                        value={amount} 
+                        onChange={e => setAmount(Number(e.target.value))} 
+                        className="w-full pl-12 pr-4 py-4 bg-black/40 border border-white/10 rounded-2xl text-2xl font-black text-white focus:outline-none focus:ring-2 focus:ring-rose-500/50" 
+                    />
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {['USD', 'EUR', 'JPY', 'HKD'].map(cur => (
+                    <div key={cur} className="p-4 bg-white/5 rounded-2xl border border-white/5 text-center group hover:border-rose-500/30 transition-all">
+                        <p className="text-[10px] font-bold text-zinc-500 uppercase mb-1">{cur}</p>
+                        <p className="text-lg font-bold text-white">{(amount * (rates[cur] || 0)).toFixed(2)}</p>
+                    </div>
+                ))}
+            </div>
+            <p className="text-[10px] text-zinc-600 text-center">汇率数据来自 Open API，仅供参考</p>
+        </div>
+    );
 };
 
 const CNHRate = () => {

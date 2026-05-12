@@ -1,6 +1,6 @@
 {
-  "name": "boxfoonk Publisher",
-  "description": "A modern, responsive personal homepage and content publisher for boxfoonk, featuring technical skills, resource sharing, and social connections.",
+  "name": "BoxFoonk - 极简工具箱 & 聚合导航",
+  "description": "BoxFoonk 个人主页与多功能聚合工具箱。包含开发辅助、图像处理、安全加密及网络诊断等 30+ 常用在线工具。",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
