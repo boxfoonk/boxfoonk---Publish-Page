@@ -12,7 +12,7 @@ export default function InteractiveBackground() {
 
     let animationFrameId: number;
     let particles: Particle[] = [];
-    const mouse = { x: 0, y: 0, radius: 250 };
+    const mouse = { x: 0, y: 0, radius: 250, isOutside: true };
 
     class Particle {
       x: number;
@@ -54,24 +54,28 @@ export default function InteractiveBackground() {
         else if (this.y < 0) this.y = canvas!.height;
 
         // Mouse interaction: Planetary Gravity (Attraction)
-        const dx = mouse.x - this.x;
-        const dy = mouse.y - this.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance < mouse.radius) {
-          const forceDirectionX = dx / distance;
-          const forceDirectionY = dy / distance;
+        if (!mouse.isOutside) {
+          const dx = mouse.x - this.x;
+          const dy = mouse.y - this.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
           
-          // Power of attraction increases as distance decreases (Gravitational feel)
-          const force = (mouse.radius - distance) / mouse.radius;
-          const pullX = forceDirectionX * force * 1.5; // Much stronger pull
-          const pullY = forceDirectionY * force * 1.5;
-          
-          this.x += pullX;
-          this.y += pullY;
-          
-          // Particles glow brighter when near the mouse
-          this.color = this.baseColor.replace('0.4', '0.8').replace('0.3', '0.7');
+          if (distance < mouse.radius) {
+            const forceDirectionX = dx / distance;
+            const forceDirectionY = dy / distance;
+            
+            // Power of attraction increases as distance decreases (Gravitational feel)
+            const force = (mouse.radius - distance) / mouse.radius;
+            const pullX = forceDirectionX * force * 1.5; // Much stronger pull
+            const pullY = forceDirectionY * force * 1.5;
+            
+            this.x += pullX;
+            this.y += pullY;
+            
+            // Particles glow brighter when near the mouse
+            this.color = this.baseColor.replace('0.4', '0.8').replace('0.3', '0.7');
+          } else {
+            this.color = this.baseColor;
+          }
         } else {
           this.color = this.baseColor;
         }
@@ -88,7 +92,8 @@ export default function InteractiveBackground() {
 
     const init = () => {
       particles = [];
-      const numberOfParticles = (canvas.width * canvas.height) / 9000; // Increased density
+      // Reduce density for better performance: 15000 pixels per particle
+      const numberOfParticles = Math.min((canvas.width * canvas.height) / 15000, 150); 
       for (let i = 0; i < numberOfParticles; i++) {
         particles.push(new Particle());
       }
@@ -103,10 +108,23 @@ export default function InteractiveBackground() {
     const handleMouseMove = (e: MouseEvent) => {
       mouse.x = e.clientX;
       mouse.y = e.clientY;
+      mouse.isOutside = false;
+    };
+
+    const handleMouseLeave = () => {
+      mouse.isOutside = true;
+    };
+
+    const handleMouseEnter = () => {
+      mouse.isOutside = false;
     };
 
     window.addEventListener('resize', handleResize);
     window.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseleave', handleMouseLeave);
+    document.addEventListener('mouseenter', handleMouseEnter);
+    // Boundary safety: if mouse is nowhere to be found, don't attract
+    document.documentElement.addEventListener('mouseleave', handleMouseLeave);
     handleResize();
 
     const animate = () => {
@@ -117,14 +135,15 @@ export default function InteractiveBackground() {
         particles[i].draw();
 
         // Connect nearby particles
-        for (let j = i; j < particles.length; j++) {
+        for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
           const dy = particles[i].y - particles[j].y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
+          const distanceSq = dx * dx + dy * dy;
 
-          if (distance < 150) {
-            ctx.strokeStyle = `rgba(255, 255, 255, ${0.15 * (1 - distance / 150)})`;
-            ctx.lineWidth = 0.5;
+          if (distanceSq < 22500) { // 150 * 150
+            const opacity = 0.12 * (1 - Math.sqrt(distanceSq) / 150);
+            ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+            ctx.lineWidth = 0.4;
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
@@ -140,6 +159,8 @@ export default function InteractiveBackground() {
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+      document.removeEventListener('mouseenter', handleMouseEnter);
       cancelAnimationFrame(animationFrameId);
     };
   }, []);

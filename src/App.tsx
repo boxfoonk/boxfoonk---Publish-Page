@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useMotionValue, useSpring } from 'motion/react';
 import { Routes, Route, useNavigate, useLocation, Link } from 'react-router-dom';
 import { Menu, X, Languages, Github, Smartphone, Monitor, Code, Settings, Share2, MessageSquare, Twitter, Send, MapPin, Mail, ExternalLink, Cpu, Briefcase } from 'lucide-react';
 import { cn } from './lib/utils';
@@ -31,21 +31,35 @@ function HomePage({ lang, t }: { lang: 'zh' | 'en', t: any }) {
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
             className="drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
           >
-            <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-6 bg-gradient-to-b from-white to-zinc-500 bg-clip-text text-transparent filter drop-shadow-sm">
-              {t.hero_title} Publisher
+            <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-6 flex flex-wrap justify-center">
+              {`${t.hero_title} Publisher`.split('').map((char, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.5,
+                    delay: i * 0.04,
+                    ease: "easeOut"
+                  }}
+                  className="inline-block bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent"
+                >
+                  {char === ' ' ? '\u00A0' : char}
+                </motion.span>
+              ))}
             </h1>
             <motion.p 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 1, delay: 0.3 }}
-              className="text-lg md:text-2xl text-white/80 max-w-2xl mx-auto mb-10 font-light leading-relaxed drop-shadow-md"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 1.0 }}
+              className="text-lg md:text-2xl text-white/80 max-w-2xl mx-auto mb-10 font-normal leading-relaxed"
             >
               {t.hero_subtitle}
             </motion.p>
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 1, delay: 1.3, ease: [0.16, 1, 0.3, 1] }}
               className="flex flex-wrap justify-center gap-4"
             >
               <a 
@@ -311,13 +325,26 @@ export default function App() {
   const location = useLocation();
   const t = translations[lang];
 
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const shadowX = useSpring(mouseX, { damping: 25, stiffness: 150 });
+  const shadowY = useSpring(mouseY, { damping: 25, stiffness: 150 });
+
+  const [isMouseInside, setIsMouseInside] = useState(false);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
+      mouseX.set(e.clientX - 300);
+      mouseY.set(e.clientY - 300);
+      setIsMouseInside(true);
     };
+    
+    const handleMouseLeave = () => setIsMouseInside(false);
+    const handleMouseEnter = () => setIsMouseInside(true);
+
     window.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseleave', handleMouseLeave);
+    document.addEventListener('mouseenter', handleMouseEnter);
     
     // Auto-detect language
     const browserLang = navigator.language.toLowerCase();
@@ -326,7 +353,13 @@ export default function App() {
     } else {
       setLang('en');
     }
-  }, []);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+      document.removeEventListener('mouseenter', handleMouseEnter);
+    };
+  }, []); // Remove dependency on isMouseInside to avoid infinite re-renders/attach/detach
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -392,31 +425,41 @@ export default function App() {
       <InteractiveBackground />
       
       {/* Dynamic Mouse Halo */}
-      <motion.div
-        className="fixed top-0 left-0 w-[600px] h-[600px] pointer-events-none z-[1] opacity-25 blur-[100px] rounded-full"
-        style={{
-          background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
-          left: mousePos.x - 300,
-          top: mousePos.y - 300,
-        }}
-        transition={{ type: "spring", damping: 25, stiffness: 150 }}
-      />
+      <AnimatePresence>
+        {isMouseInside && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed top-0 left-0 w-[600px] h-[600px] pointer-events-none z-[1] rounded-full will-change-transform"
+            style={{
+              background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
+              x: shadowX,
+              y: shadowY,
+              filter: 'blur(60px)',
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* iOS-style Ultra-Vibrant Multi-color Mesh Gradient Background */}
       <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none bg-[#0a0212]">
         <div className="absolute inset-0 bg-gradient-to-br from-[#12042a] via-[#08021a] to-[#150525]" />
         
         <motion.div 
-          animate={{ scale: [1, 2, 1], rotate: [0, 360, 0] }}
-          transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-          className="absolute top-[-30%] left-[-20%] w-[140%] h-[140%] rounded-full bg-indigo-500/25 blur-[160px] mix-blend-screen" 
+          animate={{ x: ['-5%', '5%', '-5%'], y: ['-5%', '3%', '-5%'], scale: [1, 1.05, 1] }}
+          transition={{ duration: 40, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[-25%] left-[-15%] w-[150%] h-[150%] rounded-full bg-indigo-600/10 mix-blend-screen overflow-hidden blur-[200px] will-change-transform" 
         />
         <motion.div 
-          animate={{ scale: [2, 0.6, 2], rotate: [0, -240, 0] }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute bottom-[-20%] right-[-15%] w-[150%] h-[150%] rounded-full bg-rose-500/20 blur-[180px] mix-blend-screen" 
+          animate={{ x: ['5%', '-5%', '5%'], y: ['5%', '-3%', '5%'], scale: [1.05, 0.95, 1.05] }}
+          transition={{ duration: 55, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-[-15%] right-[-10%] w-[140%] h-[140%] rounded-full bg-rose-600/08 mix-blend-screen overflow-hidden blur-[200px] will-change-transform" 
         />
-        <div className="absolute inset-0 opacity-[0.05] pointer-events-none mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+        
+        {/* Anti-banding Noise Layer (Dithering) */}
+        <div className="absolute inset-0 opacity-[0.06] pointer-events-none mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+        <div className="absolute inset-0 opacity-[0.02] pointer-events-none mix-blend-soft-light bg-[url('https://grainy-gradients.vercel.app/noise.svg')] scale-125" />
       </div>
 
       {/* Navigation */}
