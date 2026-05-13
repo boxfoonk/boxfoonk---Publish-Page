@@ -6,6 +6,7 @@ import { cn } from './lib/utils';
 import { translations } from './locales';
 import InteractiveBackground from './components/InteractiveBackground';
 import Toolbox from './components/Toolbox';
+import AdBanner from './components/AdBanner';
 
 function HomePage({ lang, t }: { lang: 'zh' | 'en', t: any }) {
   const navigate = useNavigate();
@@ -152,6 +153,9 @@ function HomePage({ lang, t }: { lang: 'zh' | 'en', t: any }) {
         </div>
       </section>
 
+      {/* Ad Unit: Between About and Resources */}
+      <AdBanner dataAdSlot="6017718829" className="max-w-7xl mx-auto px-6" />
+
       {/* Resources Section */}
       <section id="resources" className="py-32 relative">
         <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-3xl -z-10" />
@@ -249,6 +253,9 @@ function HomePage({ lang, t }: { lang: 'zh' | 'en', t: any }) {
                 ))}
              </div>
           </div>
+          
+          {/* Ad Unit: Bottom of Resources Area */}
+          <AdBanner dataAdSlot="6017718829" className="mt-20 px-6" />
         </div>
       </section>
 

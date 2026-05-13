@@ -15,6 +15,7 @@ import {
 import { cn } from '../lib/utils';
 import { QRCodeSVG } from 'qrcode.react';
 import { format } from 'date-fns';
+import AdBanner from './AdBanner';
 
 type Category = 'all' | 'image' | 'dev' | 'security' | 'query' | 'finance';
 
@@ -142,6 +143,9 @@ export default function Toolbox({ onBack }: { onBack: () => void }) {
             />
           </div>
         </div>
+
+        {/* Ad Unit: Top of Toolbox */}
+        <AdBanner dataAdSlot="6017718829" className="mb-8" />
 
         {/* Categories */}
         <div className="flex overflow-x-auto gap-3 pb-8 no-scrollbar">
